@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BackgroundJobProcessor.API/BackgroundJobProcessor.API.csproj" />
+    <Project Path="src/BackgroundJobProcessor.Application/BackgroundJobProcessor.Application.csproj" />
+    <Project Path="src/BackgroundJobProcessor.Domain/BackgroundJobProcessor.Domain.csproj" />
+    <Project Path="src/BackgroundJobProcessor.Infrastructure/BackgroundJobProcessor.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BackgroundJobProcessor.IntegrationTests/BackgroundJobProcessor.IntegrationTests.csproj" />
+    <Project Path="tests/BackgroundJobProcessor.UnitTests/BackgroundJobProcessor.UnitTests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,11 @@
+@BackgroundJobProcessor.API_HostAddress = http://localhost:5188
+
+GET {{BackgroundJobProcessor.API_HostAddress}}/openapi/v1.json
+Accept: application/json
+
+###
+
+GET {{BackgroundJobProcessor.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
