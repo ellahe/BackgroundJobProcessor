@@ -9,3 +9,5 @@
 !.env.example
 TestResults/
 coverage/
+
+environment.env

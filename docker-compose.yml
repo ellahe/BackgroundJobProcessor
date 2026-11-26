@@ -1,0 +1,17 @@
+
+services:
+  postgres:
+    image: public.ecr.aws/docker/library/postgres:17
+    container_name: backgroundjobprocessor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: backgroundjobprocessor
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    ports:
+      - "5433:5432"
+    volumes:
+      - backgroundjobprocessor-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  backgroundjobprocessor-postgres-data:
