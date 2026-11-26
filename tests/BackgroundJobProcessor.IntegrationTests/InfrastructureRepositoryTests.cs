@@ -55,8 +55,8 @@ public class InfrastructureRepositoryTests
         var job = new BackgroundJob(Guid.NewGuid(), "Email", "{}", 2, DateTimeOffset.UtcNow);
         await repo.AddAsync(job);
 
-        job.Start();
-        job.FailAttempt("boom");
+        job.Claim("worker", TimeSpan.FromMinutes(1), DateTimeOffset.UtcNow);
+        job.FailAttempt("worker", job.ClaimToken, "boom");
         await repo.UpdateAsync(job);
 
         db.ChangeTracker.Clear();
@@ -123,3 +123,4 @@ public class InfrastructureRepositoryTests
         await tx.RollbackAsync();
     }
 }
+

@@ -13,6 +13,129 @@ public sealed class BackgroundJob
     public DateTimeOffset? StartedAt { get; private set; }
     public DateTimeOffset? CompletedAt { get; private set; }
     public string? LastError { get; private set; }
+    public string? WorkerId { get; private set; }
+    public DateTimeOffset? LeaseExpiresAt { get; private set; }
+    public long ClaimToken { get; private set; }
+
+    
+public void Claim(string workerId, TimeSpan leaseDuration, DateTimeOffset now)
+{
+    if (Status != JobStatus.Pending)
+        throw new InvalidOperationException($"Cannot claim a job in status {Status}.");
+
+    if (string.IsNullOrWhiteSpace(workerId))
+        throw new ArgumentException("WorkerId is required.", nameof(workerId));
+
+    if (leaseDuration <= TimeSpan.Zero)
+        throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+
+    var nextToken = checked(ClaimToken + 1);
+    var utcNow = now.ToUniversalTime();
+    var leaseExpiresAt = utcNow.Add(leaseDuration);
+
+    Status = JobStatus.Processing;
+    StartedAt = utcNow;
+    CompletedAt = null;
+    LastError = null;
+    WorkerId = workerId;
+    LeaseExpiresAt = leaseExpiresAt;
+    ClaimToken = nextToken;
+}
+
+public void FailAttempt(
+    string workerId,
+    long claimToken,
+    string error,
+    DateTimeOffset? now = null)
+{
+    var utcNow = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
+
+    ValidateOwnership(workerId, claimToken, utcNow);
+
+    if (string.IsNullOrWhiteSpace(error))
+        throw new ArgumentException("Error message is required.", nameof(error));
+
+    var nextRetryCount = checked(RetryCount + 1);
+
+    LastError = error;
+    RetryCount = nextRetryCount;
+
+    if (nextRetryCount <= MaxRetries)
+    {
+        Status = JobStatus.Pending;
+    }
+    else
+    {
+        Status = JobStatus.Failed;
+        CompletedAt = utcNow;
+    }
+
+    WorkerId = null;
+    LeaseExpiresAt = null;
+}
+
+public void RecoverExpiredLease(DateTimeOffset? now = null)
+{
+    var utcNow = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
+
+    if (Status != JobStatus.Processing)
+        throw new InvalidOperationException($"Cannot recover a job in status {Status}.");
+
+    if (LeaseExpiresAt is null || LeaseExpiresAt > utcNow)
+        throw new InvalidOperationException("Job lease has not expired.");
+
+    var nextRetryCount = checked(RetryCount + 1);
+
+    LastError = "Worker lease expired";
+    RetryCount = nextRetryCount;
+
+    if (nextRetryCount <= MaxRetries)
+    {
+        Status = JobStatus.Pending;
+    }
+    else
+    {
+        Status = JobStatus.Failed;
+        CompletedAt = utcNow;
+    }
+
+    WorkerId = null;
+    LeaseExpiresAt = null;
+}
+
+    public void RenewLease(string workerId, long claimToken, DateTimeOffset newLeaseExpiresAt, DateTimeOffset? now = null)
+    {
+        var utcNow = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
+        ValidateOwnership(workerId, claimToken, utcNow);
+        if (LeaseExpiresAt is null || newLeaseExpiresAt.ToUniversalTime() <= LeaseExpiresAt)
+            throw new ArgumentOutOfRangeException(nameof(newLeaseExpiresAt), "New lease must be later than current lease.");
+        LeaseExpiresAt = newLeaseExpiresAt.ToUniversalTime();
+    }
+
+    public void Complete(string workerId, long claimToken, DateTimeOffset? now = null)
+    {
+        var utcNow = (now ?? DateTimeOffset.UtcNow).ToUniversalTime();
+        ValidateOwnership(workerId, claimToken, utcNow);
+        if (Status != JobStatus.Processing)
+            throw new InvalidOperationException($"Cannot complete a job in status {Status}.");
+        Status = JobStatus.Completed;
+        CompletedAt = utcNow;
+        WorkerId = null;
+        LeaseExpiresAt = null;
+    }
+
+
+
+
+    private void ValidateOwnership(string workerId, long claimToken, DateTimeOffset now)
+    {
+        if (Status != JobStatus.Processing)
+            throw new InvalidOperationException($"Cannot operate on a job in status {Status}.");
+        if (WorkerId != workerId || ClaimToken != claimToken)
+            throw new InvalidOperationException("Job ownership validation failed.");
+        if (LeaseExpiresAt is null || LeaseExpiresAt <= now)
+            throw new InvalidOperationException("Job lease has expired.");
+    }
 
     public BackgroundJob(
         Guid id,
@@ -38,46 +161,5 @@ public sealed class BackgroundJob
         CreatedAt = DateTimeOffset.UtcNow;
         Status = JobStatus.Pending;
         RetryCount = 0;
-    }
-
-    public void Start()
-    {
-        if (Status != JobStatus.Pending)
-            throw new InvalidOperationException($"Cannot start a job in status {Status}.");
-
-        Status = JobStatus.Processing;
-        StartedAt = DateTimeOffset.UtcNow;
-        CompletedAt = null;
-        LastError = null;
-    }
-
-    public void Complete()
-    {
-        if (Status != JobStatus.Processing)
-            throw new InvalidOperationException($"Cannot complete a job in status {Status}.");
-
-        Status = JobStatus.Completed;
-        CompletedAt = DateTimeOffset.UtcNow;
-    }
-
-    public void FailAttempt(string error)
-    {
-        if (Status != JobStatus.Processing)
-            throw new InvalidOperationException($"Cannot record failure for a job in status {Status}.");
-        if (string.IsNullOrWhiteSpace(error))
-            throw new ArgumentException("Error message is required.", nameof(error));
-
-        LastError = error;
-        RetryCount++;
-
-        if (RetryCount <= MaxRetries)
-        {
-            Status = JobStatus.Pending;
-        }
-        else
-        {
-            Status = JobStatus.Failed;
-            CompletedAt = DateTimeOffset.UtcNow;
-        }
     }
 }

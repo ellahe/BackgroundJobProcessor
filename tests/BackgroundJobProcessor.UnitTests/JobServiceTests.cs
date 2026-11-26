@@ -31,6 +31,12 @@ public class JobServiceTests
         }
 
         public Task UpdateAsync(BackgroundJob job, CancellationToken ct = default) => Task.CompletedTask;
+
+        public Task<ClaimedJob?> TryClaimNextAsync(string workerId, TimeSpan leaseDuration, CancellationToken ct = default) => Task.FromResult<ClaimedJob?>(null);
+        public Task<bool> RenewLeaseAsync(Guid jobId, string workerId, long claimToken, TimeSpan leaseExtension, CancellationToken ct = default) => Task.FromResult(false);
+        public Task<bool> CompleteAsync(Guid jobId, string workerId, long claimToken, CancellationToken ct = default) => Task.FromResult(false);
+        public Task<bool> FailAsync(Guid jobId, string workerId, long claimToken, string error, CancellationToken ct = default) => Task.FromResult(false);
+        public Task RecoverExpiredLeasesAsync(CancellationToken ct = default) => Task.CompletedTask;
     }
 
     private sealed class FakeExecRepo : IJobExecutionRepository

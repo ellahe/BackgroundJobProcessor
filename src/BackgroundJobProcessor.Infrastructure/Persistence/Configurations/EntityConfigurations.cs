@@ -22,6 +22,9 @@ public sealed class BackgroundJobConfiguration : IEntityTypeConfiguration<Backgr
         builder.Property(x => x.StartedAt).HasField("<StartedAt>k__BackingField").HasColumnType("timestamptz");
         builder.Property(x => x.CompletedAt).HasField("<CompletedAt>k__BackingField").HasColumnType("timestamptz");
         builder.Property(x => x.LastError).HasField("<LastError>k__BackingField").HasMaxLength(4000);
+        builder.Property(x => x.WorkerId).HasField("<WorkerId>k__BackingField").HasMaxLength(200);
+        builder.Property(x => x.LeaseExpiresAt).HasField("<LeaseExpiresAt>k__BackingField").HasColumnType("timestamptz");
+        builder.Property(x => x.ClaimToken).HasField("<ClaimToken>k__BackingField").IsRequired();
 
         builder.HasIndex(x => new { x.Status, x.ScheduledAt });
     }

@@ -16,7 +16,7 @@ partial class BackgroundJobDbContextModelSnapshot : ModelSnapshot
     // If you encounter a merge conflict in the line below, it means you need to
     // discard one of the migration branches and recreate its migrations on top of
     // the other branch. See https://aka.ms/efcore-docs-migrations-conflicts for more info.
-    public override string LastMigrationId => "20261126082426_InitialCreate";
+    public override string LastMigrationId => "20261126095143_AddJobClaimLease";
 
     protected override void BuildModel(ModelBuilder modelBuilder)
     {
@@ -33,6 +33,9 @@ partial class BackgroundJobDbContextModelSnapshot : ModelSnapshot
                     .ValueGeneratedOnAdd()
                     .HasColumnType("uuid");
 
+                b.Property<long>("ClaimToken")
+                    .HasColumnType("bigint");
+
                 b.Property<DateTimeOffset?>("CompletedAt")
                     .HasColumnType("timestamptz");
 
@@ -47,6 +50,9 @@ partial class BackgroundJobDbContextModelSnapshot : ModelSnapshot
                 b.Property<string>("LastError")
                     .HasMaxLength(4000)
                     .HasColumnType("character varying(4000)");
+
+                b.Property<DateTimeOffset?>("LeaseExpiresAt")
+                    .HasColumnType("timestamptz");
 
                 b.Property<int>("MaxRetries")
                     .HasColumnType("integer");
@@ -66,6 +72,10 @@ partial class BackgroundJobDbContextModelSnapshot : ModelSnapshot
 
                 b.Property<int>("Status")
                     .HasColumnType("integer");
+
+                b.Property<string>("WorkerId")
+                    .HasMaxLength(200)
+                    .HasColumnType("character varying(200)");
 
                 b.HasKey("Id");
 
